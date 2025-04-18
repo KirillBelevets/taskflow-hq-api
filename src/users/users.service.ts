@@ -65,4 +65,26 @@ export class UsersService {
     const { password: _, ...rest } = user;
     return rest;
   }
+
+  findById(id: number): Promise<User | undefined> {
+    return this.repo
+      .findOne({ where: { id } })
+      .then((user) => user ?? undefined);
+  }
+
+  findByEmail(email: string): Promise<User | undefined> {
+    return this.repo
+      .findOne({ where: { username: email } })
+      .then((user) => user ?? undefined);
+  }
+
+  findByResetToken(token: string): Promise<User | undefined> {
+    return this.repo
+      .findOne({ where: { resetPasswordToken: token } })
+      .then((user) => user ?? undefined);
+  }
+
+  save(user: User): Promise<User> {
+    return this.repo.save(user);
+  }
 }

@@ -23,4 +23,13 @@ export class User {
     default: UserRole.USER,
   })
   role: UserRole;
+
+  @Column({ type: 'varchar', nullable: true })
+  resetPasswordToken: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  resetPasswordExpires: Date | null;
+
+  @Column({ default: 0 })
+  tokenVersion: number;
 }
