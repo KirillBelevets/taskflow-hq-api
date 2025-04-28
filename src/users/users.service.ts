@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import { v4 as uuidv4 } from 'uuid';
+
 import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -38,9 +37,20 @@ export class UsersService {
     username: string,
     password: string,
   ): Promise<Omit<User, 'password'> | null> {
+    const confirmationToken: string = uuidv4();
+
     const hashed = await bcrypt.hash(password, 10);
-    const userEntity = this.repo.create({ username, password: hashed });
+    const userEntity = this.repo.create({
+      username,
+      password: hashed,
+      emailConfirmed: false,
+      emailConfirmationToken: confirmationToken,
+    });
     const saved = await this.repo.save(userEntity);
+
+    console.log(
+      `📧 Confirm email: http://localhost:3000/auth/confirm-email?token=${confirmationToken}`,
+    );
 
     const { password: _, ...rest } = saved;
     return rest;
@@ -81,6 +91,18 @@ export class UsersService {
   findByResetToken(token: string): Promise<User | undefined> {
     return this.repo
       .findOne({ where: { resetPasswordToken: token } })
+      .then((user) => user ?? undefined);
+  }
+
+  findByConfirmationToken(token: string): Promise<User | undefined> {
+    return this.repo
+      .findOne({ where: { emailConfirmationToken: token } })
+      .then((user) => user ?? undefined);
+  }
+
+  findByEmailToken(token: string): Promise<User | undefined> {
+    return this.repo
+      .findOne({ where: { emailConfirmationToken: token } })
       .then((user) => user ?? undefined);
   }
 

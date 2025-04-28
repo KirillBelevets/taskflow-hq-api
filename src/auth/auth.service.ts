@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { v4 as uuidv4 } from 'uuid';
 import { addMinutes } from 'date-fns';
 
@@ -14,7 +11,6 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '@/users/users.service';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { UserRole } from '@/users/user.entity';
 import { RefreshTokenService } from './refresh-token.service';
 
 @Injectable()
@@ -46,13 +42,17 @@ export class AuthService {
     const user = await this.users.findByUsername(username);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
+    if (!user.emailConfirmed) {
+      throw new UnauthorizedException('Please confirm your email first');
+    }
+
     const isMatch: boolean = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new UnauthorizedException('Invalid credentials');
 
     const payload: JwtPayload = {
       sub: user.id,
       username: user.username,
-      role: user.role as UserRole,
+      role: user.role,
       tokenVersion: user.tokenVersion,
     };
 
@@ -104,6 +104,12 @@ export class AuthService {
   ): Promise<{ message: string }> {
     const user = await this.users.findByResetToken(token);
 
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)) {
+      throw new BadRequestException(
+        'Password must be at least 8 characters long and include a number, an uppercase and a lowercase letter',
+      );
+    }
+
     if (
       !user ||
       !user.resetPasswordExpires ||
@@ -127,5 +133,16 @@ export class AuthService {
 
     user.tokenVersion++;
     await this.users.save(user);
+  }
+
+  async confirmEmail(token: string): Promise<{ message: string }> {
+    const user = await this.users.findByConfirmationToken(token);
+    if (!user) throw new BadRequestException('Invalid confirmation token');
+
+    user.emailConfirmed = true;
+    user.emailConfirmationToken = null!;
+    await this.users.save(user);
+
+    return { message: 'Email confirmed successfully' };
   }
 }

@@ -5,6 +5,7 @@ import {
   UseGuards,
   Get,
   Request,
+  Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Request as ExpressRequest } from 'express';
@@ -58,7 +59,7 @@ export class AuthController {
     return {
       id: user.sub,
       username: user.username,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       role: user.role,
     };
   }
@@ -91,8 +92,14 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post('logout-all')
-  async logoutAll(@Request() req: RequestWithUser) {
-    await this.authService.logoutFromAllDevices(req.user.sub);
-    return { message: 'Logged out from all devices' };
+  logoutAllDevices(@Request() req: RequestWithUser) {
+    return this.authService.logoutFromAllDevices(req.user.sub).then(() => ({
+      message: 'Logged out from all devices',
+    }));
+  }
+
+  @Get('confirm-email')
+  async confirmEmail(@Query('token') token: string) {
+    return this.authService.confirmEmail(token);
   }
 }

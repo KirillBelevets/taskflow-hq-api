@@ -32,4 +32,10 @@ export class User {
 
   @Column({ default: 0 })
   tokenVersion: number;
+
+  @Column({ type: 'boolean', default: false })
+  emailConfirmed: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  emailConfirmationToken: string | null;
 }
